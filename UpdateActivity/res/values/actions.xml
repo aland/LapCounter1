@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="add_swimmer_action">net.nfs.alandubs.updateactivity.ADD_SWIMMER</string>
+	<string name="lap_complete_action">net.nfs.alandubs.updateactivity.LAP_COMPLETE</string>
+</resources>

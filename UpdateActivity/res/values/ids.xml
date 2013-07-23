@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<item name="laptimeLayout" type="id" />
+	<item name="summaryLayout" type="id" />
+	
+	<item name="swimmersView" type="id" />
+	<item name="numSwimmersView" type="id" />
+	
+</resources>
