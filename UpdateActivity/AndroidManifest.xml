@@ -3,19 +3,24 @@
     package="net.nfs.alandubs.updateactivity"
     android:versionCode="1"
     android:versionName="1.0" >
-
+    <!--<uses-sdk android:minSdkVersion="7" />   -->
+    
     <uses-sdk
-        android:minSdkVersion="11"
-        android:targetSdkVersion="17" />
+        android:minSdkVersion="7"  /> <!--  need to use minSdkVersion = 7 & remove  android:targetSdkVersion="17"
+                                     otherwise get awful message 'You cannot combine custom titles with other title features'
+                                     but now also need BLUETOOTH_ADMIN --> 
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.BLUETOOTH" /> 
 
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
-        android:theme="@style/AppTheme" >
+         > <!--  android:theme="@style/AppTheme" -->
         <activity
             android:name="net.nfs.alandubs.updateactivity.MainActivity"
-            android:label="@string/app_name" >
+            android:label="@string/app_name"
+             > <!--  android:theme="@android:style/Theme" -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -23,6 +28,11 @@
             </intent-filter>
             
         </activity>
+        <activity android:name=".DeviceListActivity"
+                  android:label="@string/select_device"
+                  android:theme="@android:style/Theme.Dialog"
+                  android:configChanges="orientation|keyboardHidden" />
+        <activity android:name="TermPreferences"/>
     </application>
 
 </manifest>
