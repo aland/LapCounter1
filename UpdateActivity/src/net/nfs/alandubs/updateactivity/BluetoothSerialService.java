@@ -19,6 +19,8 @@ package net.nfs.alandubs.updateactivity;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import android.bluetooth.BluetoothAdapter;
@@ -29,6 +31,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+//import es.pymasde.blueterm.BlueTerm;
 
 /**
  * This class does all the work for setting up and managing Bluetooth
@@ -304,6 +307,11 @@ public class BluetoothSerialService {
         private final BluetoothSocket mmSocket;
         private final InputStream mmInStream;
         private final OutputStream mmOutStream;
+        private int bytesread;
+        private int checksum;
+        private byte tempbyte;
+        private int[] code;
+        private List<String> results;
         
 
         public ConnectedThread(BluetoothSocket socket) {
@@ -311,6 +319,7 @@ public class BluetoothSerialService {
             mmSocket = socket;
             InputStream tmpIn = null;
             OutputStream tmpOut = null;
+            results = new ArrayList<String>();
 
             // Get the BluetoothSocket input and output streams
             try {
@@ -322,8 +331,21 @@ public class BluetoothSerialService {
 
             mmInStream = tmpIn;
             mmOutStream = tmpOut;
+            
+            init();
+        }
+        
+        private void init(){
+            code = new int[6];
+            checksum = 0;
+            tempbyte = 0;
+            bytesread = -1;
+            //if(!results.isEmpty()){
+            	Log.i(TAG, "Already have found: " + results.size() + " tags.");
+            //}
         }
 
+        //I think this can run once per byte, or process multiple bytes in one go
         public void run() {
             Log.i(TAG, "BEGIN mConnectedThread");
             byte[] buffer = new byte[1024];
@@ -331,23 +353,100 @@ public class BluetoothSerialService {
 
             // Keep listening to the InputStream while connected
             while (true) {
+            	Log.d(TAG, "Running");
                 try {
                     // Read from the InputStream
                     bytes = mmInStream.read(buffer);
 
-                    //mEmulatorView.write(buffer, bytes);
-                    Log.i(TAG, "mConnectedThread read: " + bytes);
-                    // Send the obtained bytes to the UI Activity (was already commented)
-                    //mHandler.obtainMessage(BlueTerm.MESSAGE_READ, bytes, -1, buffer).sendToTarget();
+                    for (int i = 0; i < bytes; i++) {
+                    	Log.d(TAG, "Reading: " + i + " of " + bytes + " from input stream");
+                        byte b = buffer[i];
+                        try {
+                        	if(bytesread >= 0 && bytesread <= 12){
+                        		
+                                //just printing ascii works, so my above code was buggy
+                            	char printableB = (char) b;
+                                if (b < 32 || b > 126)
+                                    printableB = ' ';
+                                Log.d(TAG, "'" + Character.toString(printableB) + "' (" + Integer.toString(b) + ")");
+
+                                if((b == 0x0D)||(b == 0x0A)||(b == 0x03)||(b == 0x02)) { // if header or stop bytes before the 10 digit reading 
+                                	Log.e(TAG, i + " Unexpected header while processing character "
+                                            + Integer.toString(b));
+                                }
+                                else {
+                                	// Do Ascii/Hex conversion
+                                    if ((b >= '0') && (b <= '9')) {
+                                        b = (byte) (b - '0');
+                                    } else if ((b >= 'A') && (b <= 'F')) {
+                                        b = (byte) (10 + b - 'A');
+                                    }
+                                    
+                                	if ((bytesread & 1) == 1) { //if isEven(bytesread)
+                                        // make some space for this hex-digit by shifting the previous hex-digit with 4 bits to the left:
+                            			//tempbyte << 4 = tempbyte * 16
+                            			//tempbyte is previous read byte
+                            			//code[bytesread >> 1] means it goes in sequential 1,2,3,4.. for values 2,4,6,8..
+                            			//current byte bitwiseor (previous byte leftbitshift 4), not sure really
+                                        code[bytesread >> 1] = (b | tempbyte << 4);
+                                        if (bytesread >> 1 != 5) {                // If we're not at the checksum byte,
+                                            checksum ^= code[bytesread >> 1];       // Calculate the checksum... (XOR)
+                                        }
+                                        //Log.d(TAG, )
+                                	}
+                                	else { // Store the first hex digit first
+                                		tempbyte = b; 
+                                	}
+                                }
+                                
+                                bytesread++;
+                        	}
+                        	else if(b == 2){ //does the extra condition above break this?
+                        		init();
+                        		bytesread = 0;
+                        		Log.d(TAG, "Header found!");
+                        	}
+                        	
+                        	if(bytesread == 12){
+                        		if(checksum < 0){
+                        			Log.d(TAG, "Checksum negative: "+checksum);
+                        		}
+                        		String check = (code[5] == checksum ? "-passed" : "-error");
+                        		String r = "";
+                        		for(int j = 0; j < 6; j++){
+                        			r += Integer.toString(code[j]);
+                        		}
+                                
+                                Log.d(TAG, "Check: " + code[5] + check);
+                                Log.d(TAG, r);
+                                if(code[5] == checksum && !results.contains(r)){
+                                	results.add(r);
+                                }
+                                init();
+                        	}
+                        	else if(bytesread > 12){
+                        		Log.e(TAG, "Too many bytes!");
+                        	}
+
+                        } catch (Exception e) {
+                            Log.e(TAG, i + " Exception while processing character "
+                                    + Integer.toString(b), e);
+                        }
+                    }
+
+
+                    //not sure what this does, toString is some native function that doesn't do what I would've thought
+                    String a = buffer.toString();                    
+                    a = ""; //does this somehow free memory or what?
                     
-                    String a = buffer.toString();
-                    a = "";
                 } catch (IOException e) {
                     Log.e(TAG, "disconnected", e);
                     connectionLost();
                     break;
                 }
             }
+
+            Log.i(TAG, "END mConnectedThread");
         }
 
         /**
