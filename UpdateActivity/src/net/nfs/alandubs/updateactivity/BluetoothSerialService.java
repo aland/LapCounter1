@@ -232,6 +232,14 @@ public class BluetoothSerialService {
         msg.setData(bundle);
         mHandler.sendMessage(msg);
     }
+    
+    private void sendTag(int tag) {
+    	Message msg = mHandler.obtainMessage(MainActivity.MESSAGE_GETTAG);
+    	Bundle bundle = new Bundle();
+    	bundle.putInt(MainActivity.RFIDTAG, tag);
+    	msg.setData(bundle);
+    	mHandler.sendMessage(msg);
+    }
 
     /**
      * This thread runs while attempting to make an outgoing connection
@@ -278,6 +286,7 @@ public class BluetoothSerialService {
                 }
                 // Start the service over to restart listening mode
                 //BluetoothSerialService.this.start();
+                //TODO: did i comment this out?
                 return;
             }
 
@@ -340,12 +349,10 @@ public class BluetoothSerialService {
             checksum = 0;
             tempbyte = 0;
             bytesread = -1;
-            //if(!results.isEmpty()){
-            	Log.i(TAG, "Already have found: " + results.size() + " tags.");
-            //}
+           	Log.i(TAG, "Already have found: " + results.size() + " tags.");
         }
 
-        //I think this can run once per byte, or process multiple bytes in one go
+        //This can run once per byte, or process multiple bytes in one go
         public void run() {
             Log.i(TAG, "BEGIN mConnectedThread");
             byte[] buffer = new byte[1024];
@@ -364,7 +371,6 @@ public class BluetoothSerialService {
                         try {
                         	if(bytesread >= 0 && bytesread <= 12){
                         		
-                                //just printing ascii works, so my above code was buggy
                             	char printableB = (char) b;
                                 if (b < 32 || b > 126)
                                     printableB = ' ';
@@ -375,26 +381,22 @@ public class BluetoothSerialService {
                                             + Integer.toString(b));
                                 }
                                 else {
-                                	// Do Ascii/Hex conversion
+                                	// Do ASCII/Hex conversion
                                     if ((b >= '0') && (b <= '9')) {
                                         b = (byte) (b - '0');
                                     } else if ((b >= 'A') && (b <= 'F')) {
                                         b = (byte) (10 + b - 'A');
                                     }
                                     
-                                	if ((bytesread & 1) == 1) { //if isEven(bytesread)
+                                	if ((bytesread & 1) == 1) { //if isOdd(bytesread)
                                         // make some space for this hex-digit by shifting the previous hex-digit with 4 bits to the left:
-                            			//tempbyte << 4 = tempbyte * 16
-                            			//tempbyte is previous read byte
                             			//code[bytesread >> 1] means it goes in sequential 1,2,3,4.. for values 2,4,6,8..
-                            			//current byte bitwiseor (previous byte leftbitshift 4), not sure really
                                         code[bytesread >> 1] = (b | tempbyte << 4);
                                         if (bytesread >> 1 != 5) {                // If we're not at the checksum byte,
                                             checksum ^= code[bytesread >> 1];       // Calculate the checksum... (XOR)
                                         }
-                                        //Log.d(TAG, )
                                 	}
-                                	else { // Store the first hex digit first
+                                	else { // Store the first digit first
                                 		tempbyte = b; 
                                 	}
                                 }
@@ -409,7 +411,7 @@ public class BluetoothSerialService {
                         	
                         	if(bytesread == 12){
                         		if(checksum < 0){
-                        			Log.d(TAG, "Checksum negative: "+checksum);
+                        			Log.i(TAG, "Checksum negative: "+checksum);
                         		}
                         		String check = (code[5] == checksum ? "-passed" : "-error");
                         		String r = "";
@@ -419,8 +421,12 @@ public class BluetoothSerialService {
                                 
                                 Log.d(TAG, "Check: " + code[5] + check);
                                 Log.d(TAG, r);
-                                if(code[5] == checksum && !results.contains(r)){
-                                	results.add(r);
+                                if(code[5] == checksum) {
+                                	if(!results.contains(r)){
+                                		results.add(r);
+                                	}
+                                	//tell my mainactivity the good news
+                                	sendTag(code[5]);
                                 }
                                 init();
                         	}

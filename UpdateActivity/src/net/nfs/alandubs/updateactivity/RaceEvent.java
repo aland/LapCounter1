@@ -8,6 +8,8 @@ import android.util.Log;
 import android.util.SparseArray;
 
 public class RaceEvent {
+	//Control the minimum interval between laps (RFID reader will send multiple events for the duration of proximity)
+	private final long interval = 1000000000L; 
 	private int totalLaps;
 	//Map<String, Integer> aMap = new HashMap<String, Integer>();
 	//private Map<Integer, Swimmer> swimmers = new HashMap<Integer, Swimmer>();
@@ -21,6 +23,8 @@ public class RaceEvent {
 			laps = 1;
 		}
 		totalLaps = laps;
+		//startTime = 0L;
+		//endTime = 0L;
 	}
 	
 	public int getMaxLaps() {
@@ -31,13 +35,17 @@ public class RaceEvent {
 		return startTime;
 	}
 	
+	public boolean isStarted(){
+		return startTime != null ? true : false;
+	}
+	
 	public void addSwimmer(int id) { //assuming the unique identifier is int
-		if(validId(id)){
+		if(startTime == null && validId(id)){
 			Swimmer s = new Swimmer();
 			swimmers.put(id, s);
 		}
 		else {
-			Log.d("debug", "not valid or already used id");
+			Log.d("debug", "Didn't add, not valid or already used id or race already started");
 		}
 	}
 	
@@ -78,14 +86,17 @@ public class RaceEvent {
 	}
 	
 	public void lap(int id){
+
 		if(startTime != null){
 			Swimmer swimmer = swimmers.get(id);
 			if(swimmer != null){
-				swimmer.setLapComplete(System.nanoTime()); 
-				Log.d("debug", swimmer.getName() + " completed lap at: " + Long.toString(swimmer.getLastLap() / 1000000L));
+				if(swimmer.getLastLap() < (System.nanoTime() - interval)){
+					swimmer.setLapComplete(System.nanoTime()); 
+					Log.d("debug", swimmer.getName() + " completed lap at: " + Long.toString(swimmer.getLastLap() / 1000000L));
 				
-				if(allCompleted()){
-					endTime = System.nanoTime();
+					if(allCompleted()){
+						endTime = System.nanoTime();
+					}
 				}
 			}
 			else{

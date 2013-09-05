@@ -36,6 +36,12 @@
 	 android:orientation="vertical"
 	 android:layout_below="@id/summaryLayout" >
 
+	    <Button
+            android:id="@id/startButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/start_send" />
+
 	    <!--  lap times go here -->
 	    <ListView
          android:id="@id/swimmersView"

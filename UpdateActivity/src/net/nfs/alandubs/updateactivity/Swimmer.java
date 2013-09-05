@@ -52,7 +52,12 @@ public class Swimmer {
 	}
 	
 	public long getLastLap() {
-		return getLastLap(lapTimes.size());
+		if(lapTimes.size() == 0) {
+			return 0;
+		}
+		else {
+			return getLastLap(lapTimes.size());
+		}
 	}
 	public long getLastLap(int i) {
 		return lapTimes.get(i - 1);
