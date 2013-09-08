@@ -1,6 +1,5 @@
 package net.nfs.alandubs.updateactivity;
 
-import net.nfs.alandubs.updateactivity.R;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
@@ -15,17 +14,19 @@ import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.preference.PreferenceManager;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.Window;
 import android.view.View;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+//import android.view.inputmethod.InputMethodManager;
 //import android.view.Menu;
 
 public class MainActivity extends Activity {
@@ -126,7 +127,9 @@ public class MainActivity extends Activity {
 		if (DEBUG)
 			Log.e(LOG_TAG, "+++ ON CREATE +++");
 
-		mPrefs = getPreferences(Context.MODE_PRIVATE);
+		//mPrefs = getPreferences(Context.MODE_PRIVATE);
+		mPrefs = PreferenceManager.getDefaultSharedPreferences(this);
+		
         readPrefs();
 
 
@@ -170,11 +173,10 @@ public class MainActivity extends Activity {
 		Button startButton = (Button) this.findViewById(R.id.startButton);
 		startButton.setOnClickListener(new View.OnClickListener() {
 		    public void onClick(View v) {
-		        // Do something in response to button click
 		    	startRace();
 		    }
 		});
-
+		
 		if (DEBUG)
 			Log.e(LOG_TAG, "+++ DONE IN ON CREATE +++");
 		
@@ -274,10 +276,9 @@ public class MainActivity extends Activity {
 	}
 	
     private void readPrefs() {
-    	
         mMaxLaps = readIntPref(MAXLAPS_KEY, mMaxLaps, 20);
-        
     }
+
     private void updatePrefs() {
     	Log.d(LOG_TAG, "Todo updatePrefs");
     	//TODO this, do I need to?
@@ -359,10 +360,13 @@ public class MainActivity extends Activity {
                                Toast.LENGTH_SHORT).show();
                 break;
             case MESSAGE_GETTAG:
-            	Log.d(LOG_TAG, "Holy shit"+ msg.getData().getInt(RFIDTAG));
-            	
-            	receivedNewSwimmer(msg.getData().getInt(RFIDTAG));
-            	//TODO handle this better
+            	if(race.isStarted()){
+            		receivedLap(msg.getData().getInt(RFIDTAG));
+            	}
+            	else {
+            		receivedNewSwimmer(msg.getData().getInt(RFIDTAG));	
+            	}
+
             	break;
             }
         }
@@ -438,7 +442,13 @@ public class MainActivity extends Activity {
             	}
             return true;
         case R.id.preferences:
-        	doPreferences();
+        	if(race.isStarted()){
+        		Toast.makeText(this, "You cannot change preferences after race has begun", Toast.LENGTH_SHORT).show();
+        	}
+        	else{
+        		doPreferences();	
+        	}
+        	
             return true;
 
         }
@@ -555,8 +565,8 @@ public class MainActivity extends Activity {
     /**
      * Application classes 
      */
-	private void startRace(){
-		if(race.getSwimmers() >= 4) { //TODO: remove hard cap and 'start' the race by click
+    private void startRace(){
+		if(race.getSwimmers() >= 1) {
 			race.start();
 			adapter.setStart( race.getStart() );
 		}
@@ -588,10 +598,6 @@ public class MainActivity extends Activity {
 	private void receivedNewSwimmer(int i){
 		if(i > 1){
 			race.addSwimmer(i);
-			if(race.getSwimmers() >= 4) { //TODO: remove hard cap and 'start' the race by click
-				race.start();
-				adapter.setStart( race.getStart() );
-			}
 		}
 
 		TextView swimmersCount = (TextView) findViewById(R.id.numSwimmersView);
@@ -600,7 +606,10 @@ public class MainActivity extends Activity {
 	}
 	
 	private void receivedLap(int i){
-		//TODO this
+		if(i > 1){
+			race.lap(i);
+		}
+
 		adapter.updateSwimmers(race.getAllSwimmers());
 	}
 

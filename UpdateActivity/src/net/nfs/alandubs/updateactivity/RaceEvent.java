@@ -11,6 +11,7 @@ public class RaceEvent {
 	//Control the minimum interval between laps (RFID reader will send multiple events for the duration of proximity)
 	private final long interval = 1000000000L; 
 	private int totalLaps;
+	private int completed;
 	//Map<String, Integer> aMap = new HashMap<String, Integer>();
 	//private Map<Integer, Swimmer> swimmers = new HashMap<Integer, Swimmer>();
 	private SparseArray<Swimmer> swimmers = new SparseArray<Swimmer>(10);
@@ -23,6 +24,7 @@ public class RaceEvent {
 			laps = 1;
 		}
 		totalLaps = laps;
+		completed = 0;
 		//startTime = 0L;
 		//endTime = 0L;
 	}
@@ -40,12 +42,13 @@ public class RaceEvent {
 	}
 	
 	public void addSwimmer(int id) { //assuming the unique identifier is int
+		Log.i("debug", "addSwimmer("+id+") called");
 		if(startTime == null && validId(id)){
 			Swimmer s = new Swimmer();
 			swimmers.put(id, s);
 		}
 		else {
-			Log.d("debug", "Didn't add, not valid or already used id or race already started");
+			Log.d("debug", "Didn't add: "+ id +" not valid or already used id or race already started");
 		}
 	}
 	
@@ -76,7 +79,7 @@ public class RaceEvent {
 	}
 	
 	public void start(){
-		if(startTime == null && swimmers.size() > 1) {
+		if(startTime == null && swimmers.size() >= 1) {
 			startTime = System.nanoTime();
 			Log.d("debug", "Started at: " + Long.toString(startTime / 1000000L));
 		} // else restart?
@@ -86,31 +89,48 @@ public class RaceEvent {
 	}
 	
 	public void lap(int id){
+		long now = System.nanoTime(); //consistent time in case race completes.
 
-		if(startTime != null){
+		if(startTime != null && endTime == null){
 			Swimmer swimmer = swimmers.get(id);
 			if(swimmer != null){
-				if(swimmer.getLastLap() < (System.nanoTime() - interval)){
-					swimmer.setLapComplete(System.nanoTime()); 
+				if((swimmer.getLaps() < totalLaps) && (swimmer.getLastLap() < (now - interval))){
+					swimmer.setLapComplete(now); 
 					Log.d("debug", swimmer.getName() + " completed lap at: " + Long.toString(swimmer.getLastLap() / 1000000L));
 				
-					if(allCompleted()){
-						endTime = System.nanoTime();
+					//if(allCompleted()){
+					//	endTime = now;
+					//}
+					if(swimmer.getLaps() == totalLaps){
+						completed++;
 					}
 				}
 			}
 			else{
-				Log.d("debug", "swimmer not found for lap completed");
+				Log.d("debug", "Swimmer not found");
 			}
 		}
 		else{
-			Log.d("debug", "no start time set for lap completed");
+			Log.d("debug", "No start time set or end already set");
 		}
 	}
 	
 	private boolean allCompleted() {
 		//TODO iterate over swimmers and return true if all swimmers.laps == totalLaps;
-		return false;
+		return completed >= totalLaps;
+		/*
+		int size = swimmers.size();
+		if(size == 0)
+			return false;
+		
+		boolean complete = true;
+		for(int i = 0; i < size; i++) {
+			if(swimmers.valueAt(i).getLaps() < totalLaps){
+				complete = false;
+				break; //fail early
+			}
+		}
+		return complete; */
 	}
 	
 	private boolean validId(int id) {
