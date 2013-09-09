@@ -1,5 +1,6 @@
 package net.nfs.alandubs.updateactivity;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
@@ -8,9 +9,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -26,8 +25,7 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
-//import android.view.inputmethod.InputMethodManager;
-//import android.view.Menu;
+
 
 public class MainActivity extends Activity {
     // Intent request codes
@@ -65,21 +63,21 @@ public class MainActivity extends Activity {
     public static final int MESSAGE_WRITE = 3;
     public static final int MESSAGE_DEVICE_NAME = 4;
     public static final int MESSAGE_TOAST = 5;
-    // Application message types
-    public static final int MESSAGE_GETTAG = 6;
 
     // Key names received from the BluetoothChatService Handler
     public static final String DEVICE_NAME = "device_name";
     public static final String TOAST = "toast";
+    
+	private BluetoothAdapter mBluetoothAdapter = null;
+	private static BluetoothSerialService mSerialService = null;
+	private boolean mEnablingBT;
+	
     // Application key names
     public static final String RFIDTAG = "tag";
     public static final String MAXLAPS_KEY = "maxlaps";
-	
-	private BluetoothAdapter mBluetoothAdapter = null;
+    // Application message types
+    public static final int MESSAGE_GETTAG = 6;
     
-	private static BluetoothSerialService mSerialService = null;
-    
-	private boolean mEnablingBT;
     private int mMaxLaps = 9;
     
 
@@ -122,51 +120,48 @@ public class MainActivity extends Activity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		Resources r = getResources();
 		
 		if (DEBUG)
-			Log.e(LOG_TAG, "+++ ON CREATE +++");
+			Log.d(LOG_TAG, "+++ ON CREATE +++");
 
-		//mPrefs = getPreferences(Context.MODE_PRIVATE);
 		mPrefs = PreferenceManager.getDefaultSharedPreferences(this);
-		
         readPrefs();
 
 
-		//boolean useTitleFeature = false;
+        // useTitleFeature = requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
 	    // If the window has a container, then we are not free to request window features.
-	    if(getWindow().getContainer() == null) {
-	       // useTitleFeature = requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
-	    	Log.d(LOG_TAG, "Container is null");
+	    if(getWindow().getContainer() != null) {
+	    	Log.e(LOG_TAG, "Container is not null");
 	    }
 
-	    requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
+	    if(!requestWindowFeature(Window.FEATURE_CUSTOM_TITLE)) {
+	    	Log.e(LOG_TAG, "Does not have FEATURE_CUSTOM_TITLE");
+	    }
+	    
         setContentView(R.layout.activity_main);
         
 		// Set up the window layout
         getWindow().setFeatureInt(Window.FEATURE_CUSTOM_TITLE, R.layout.custom_title);
-        Log.d(LOG_TAG, "Has FEATURE_CUSTOM_TITLE");
+        
 	    // Set up the custom title
 	    mTitle = (TextView) findViewById(R.id.title_left_text);
 	    mTitle.setText(R.string.app_name);
         mTitle = (TextView) findViewById(R.id.title_right_text);
         mTitle.setText("Hi mTitle");
 
-
-		mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+		//get bluetooth and fail if not found
+        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
 		if (mBluetoothAdapter == null) {
             finishDialogNoBluetooth();
 			return;
 		}
-		
+
+        mSerialService = new BluetoothSerialService(this, mHandlerBT);
+        
 	    race = new RaceEvent(mMaxLaps);
 		listView = (ListView) findViewById(R.id.swimmersView);
-		
-        mSerialService = new BluetoothSerialService(this, mHandlerBT);   
-		//not using adapter?
         adapter = new SwimmerAdapter(getBaseContext(), mMaxLaps);
-		
         listView.setAdapter(adapter);
 		adapter.updateSwimmers(race.getAllSwimmers());
 		
@@ -176,6 +171,8 @@ public class MainActivity extends Activity {
 		    	startRace();
 		    }
 		});
+		
+		//TODO other buttons like, export, reset
 		
 		if (DEBUG)
 			Log.e(LOG_TAG, "+++ DONE IN ON CREATE +++");
@@ -199,10 +196,10 @@ public class MainActivity extends Activity {
 			Log.e(LOG_TAG, "+ ON RESUME +");
 		}
 		
-		IntentFilter filter = new IntentFilter();
-		filter.addAction(getString(R.string.add_swimmer_action));
-		filter.addAction(getString(R.string.lap_complete_action));
-		this.registerReceiver(this.mBroadcastReceiver, filter);
+		//IntentFilter filter = new IntentFilter();
+		//filter.addAction(getString(R.string.add_swimmer_action));
+		//filter.addAction(getString(R.string.lap_complete_action));
+		//this.registerReceiver(this.mBroadcastReceiver, filter);
 		//anything with adapter?
 		
 		//BlueTerm stuff follows
@@ -233,16 +230,14 @@ public class MainActivity extends Activity {
 		    if (mSerialService != null) {
 		    	// Only if the state is STATE_NONE, do we know that we haven't started already
 		    	if (mSerialService.getState() == BluetoothSerialService.STATE_NONE) {
-		    		// Start the Bluetooth chat services
+		    		// Start the Bluetooth services
 		    		mSerialService.start();
 		    	}
 		    }
 
 		    if (mBluetoothAdapter != null) {
 		    	readPrefs();
-		    	updatePrefs();
-
-		    	//mEmulatorView.onResume();
+		    	//updatePrefs();
 		    }
 		}
 		
@@ -254,7 +249,7 @@ public class MainActivity extends Activity {
 		if (DEBUG)
 			Log.e(LOG_TAG, "- ON PAUSE -");
 		
-		//this.unregisterReceiver(this.mBroadcastReceiver);
+		//should do something?
 	}
 	
     @Override
@@ -272,23 +267,11 @@ public class MainActivity extends Activity {
 		
         if (mSerialService != null)
         	mSerialService.stop();
-        
+
 	}
 	
     private void readPrefs() {
         mMaxLaps = readIntPref(MAXLAPS_KEY, mMaxLaps, 20);
-    }
-
-    private void updatePrefs() {
-    	Log.d(LOG_TAG, "Todo updatePrefs");
-    	//TODO this, do I need to?
-    	/*
-        DisplayMetrics metrics = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getMetrics(metrics);
-        mEmulatorView.setTextSize((int) (mFontSize * metrics.density));
-        setColors();
-        mControlKeyCode = CONTROL_KEY_SCHEMES[mControlKeyId];
-        */
     }
 
     private int readIntPref(String key, int defaultValue, int maxValue) {
@@ -311,8 +294,10 @@ public class MainActivity extends Activity {
     public void send(byte[] out) {
     	mSerialService.write( out );
     }
+    
     // The Handler that gets information back from the BluetoothService
-    private final Handler mHandlerBT = new Handler() {
+    @SuppressLint("HandlerLeak") // complains this might leak if not static
+	private final Handler mHandlerBT = new Handler() {
     	
         @Override
         public void handleMessage(Message msg) {        	
@@ -442,13 +427,7 @@ public class MainActivity extends Activity {
             	}
             return true;
         case R.id.preferences:
-        	if(race.isStarted()){
-        		Toast.makeText(this, "You cannot change preferences after race has begun", Toast.LENGTH_SHORT).show();
-        	}
-        	else{
-        		doPreferences();	
-        	}
-        	
+       		doPreferences();	
             return true;
 
         }
@@ -456,7 +435,12 @@ public class MainActivity extends Activity {
     }
     
     private void doPreferences() {
-        startActivity(new Intent(this, SwimPreferences.class));
+    	if(race.isStarted()){
+    		Toast.makeText(this, "You cannot change preferences after race has begun", Toast.LENGTH_SHORT).show();
+    	}
+    	else{
+    		startActivity(new Intent(this, SwimPreferences.class));	
+    	}
     }
     
     /**
@@ -563,7 +547,7 @@ public class MainActivity extends Activity {
     }
     
     /**
-     * Application classes 
+     * Application classes, mostly work with adapter
      */
     private void startRace(){
 		if(race.getSwimmers() >= 1) {

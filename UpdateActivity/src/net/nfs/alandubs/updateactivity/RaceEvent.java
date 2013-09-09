@@ -12,7 +12,7 @@ public class RaceEvent {
 	private final long interval = 1000000000L; 
 	private int totalLaps;
 	private int completed;
-	//Map<String, Integer> aMap = new HashMap<String, Integer>();
+
 	//private Map<Integer, Swimmer> swimmers = new HashMap<Integer, Swimmer>();
 	private SparseArray<Swimmer> swimmers = new SparseArray<Swimmer>(10);
 
@@ -25,8 +25,6 @@ public class RaceEvent {
 		}
 		totalLaps = laps;
 		completed = 0;
-		//startTime = 0L;
-		//endTime = 0L;
 	}
 	
 	public int getMaxLaps() {
@@ -38,17 +36,14 @@ public class RaceEvent {
 	}
 	
 	public boolean isStarted(){
-		return startTime != null ? true : false;
+		return !(startTime == null);
 	}
 	
 	public void addSwimmer(int id) { //assuming the unique identifier is int
-		Log.i("debug", "addSwimmer("+id+") called");
 		if(startTime == null && validId(id)){
 			Swimmer s = new Swimmer();
 			swimmers.put(id, s);
-		}
-		else {
-			Log.d("debug", "Didn't add: "+ id +" not valid or already used id or race already started");
+			Log.i("debug", "Swimmer " + id + " added");
 		}
 	}
 	
@@ -96,14 +91,18 @@ public class RaceEvent {
 			if(swimmer != null){
 				if((swimmer.getLaps() < totalLaps) && (swimmer.getLastLap() < (now - interval))){
 					swimmer.setLapComplete(now); 
-					Log.d("debug", swimmer.getName() + " completed lap at: " + Long.toString(swimmer.getLastLap() / 1000000L));
 				
-					//if(allCompleted()){
-					//	endTime = now;
-					//}
 					if(swimmer.getLaps() == totalLaps){
 						completed++;
+
+						if(allCompleted()){
+							endTime = now;
+						}
 					}
+					
+					Log.d("debug", swimmer.getName() + " completed lap at: " + Long.toString(swimmer.getLastLap() / 1000000L));
+					if(endTime != null)
+						Log.d("debug", "Race over at: " + endTime);
 				}
 			}
 			else{
@@ -115,22 +114,12 @@ public class RaceEvent {
 		}
 	}
 	
-	private boolean allCompleted() {
-		//TODO iterate over swimmers and return true if all swimmers.laps == totalLaps;
-		return completed >= totalLaps;
-		/*
-		int size = swimmers.size();
-		if(size == 0)
-			return false;
-		
-		boolean complete = true;
-		for(int i = 0; i < size; i++) {
-			if(swimmers.valueAt(i).getLaps() < totalLaps){
-				complete = false;
-				break; //fail early
-			}
+	public boolean allCompleted() {
+		if(completed > totalLaps) {
+			Log.d(this.getClass().getName(), "More completed than allowed");
 		}
-		return complete; */
+		
+		return completed >= totalLaps;
 	}
 	
 	private boolean validId(int id) {
