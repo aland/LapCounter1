@@ -40,8 +40,14 @@
             android:id="@id/startButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/start_send" />
+            android:text="@string/button_start" />
 
+	   	<Button
+            android:id="@id/exportButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/button_export" />
+	    	    
 	    <!--  lap times go here -->
 	    <ListView
          android:id="@id/swimmersView"
