@@ -32,7 +32,7 @@ public class Swimmer {
 	}
 	
 	public long getLastLapTime(long start) {
-		long l = 0;
+		long l = 0L;
 		
 		if (lapTimes.size() == 0) {
 		 //nothing?
@@ -62,5 +62,16 @@ public class Swimmer {
 	public long getLastLap(int i) {
 		return lapTimes.get(i - 1);
 	}
+	
+	@Override
+	public String toString(){
+		String out = "";
+		int max = getLaps();
+		for(int i = 0; i < max; i++) {
+			out += Long.toString(lapTimes.get(i)) + ',';
+		}
+		return out;
+	}
+
 
 }
