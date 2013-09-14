@@ -93,30 +93,6 @@ public class MainActivity extends Activity {
 	private ListView listView;
 	private SwimmerAdapter adapter;
 
-	@Deprecated
-	private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
-		@Override
-		public void onReceive(Context context, Intent intent){
-			Bundle bundle = intent.getExtras();
-			
-			if(bundle != null){
-				if(intent.getAction().equals(getString(R.string.add_swimmer_action))){
-					MainActivity.this.receivedNewSwimmer(intent, bundle);
-				}
-				else if(intent.getAction().equals(getString(R.string.lap_complete_action))){
-					MainActivity.this.receivedLap(intent, bundle);
-				}
-				else {
-					Log.d("debug", intent.getAction());
-				}
-			}
-			else {
-				Log.d("debug", "no bundle");
-			}
-			//don't pass if no extra data
-		}
-	};
-	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -196,13 +172,7 @@ public class MainActivity extends Activity {
 			Log.e(LOG_TAG, "+ ON RESUME +");
 		}
 		
-		//IntentFilter filter = new IntentFilter();
-		//filter.addAction(getString(R.string.add_swimmer_action));
-		//filter.addAction(getString(R.string.lap_complete_action));
-		//this.registerReceiver(this.mBroadcastReceiver, filter);
-		//anything with adapter?
-		
-		//BlueTerm stuff follows
+		//BlueTerm stuff follows, all this will likely change to receive from multiple bt
 		if (!mEnablingBT) { // If we are turning on the BT we cannot check if it's enable
 		    if ( (mBluetoothAdapter != null)  && (!mBluetoothAdapter.isEnabled()) ) {
 			
@@ -558,27 +528,7 @@ public class MainActivity extends Activity {
 			Log.d("debug", "Not enough swimmers to start");
 		}
 	}
-
-	private void receivedNewSwimmer(Intent i, Bundle b){
-		if(b.containsKey("swimmer")){
-			race.addSwimmer(b.getInt("swimmer"));
-		}
-
-		TextView swimmersCount = (TextView) findViewById(R.id.numSwimmersView);
-		swimmersCount.setText(Integer.toString(race.getSwimmers()));
-		adapter.updateSwimmers(race.getAllSwimmers());
-		
-	}
 	
-	private void receivedLap(Intent i, Bundle b){
-		if(b.containsKey("swimmer")){
-			race.lap(b.getInt("swimmer"));
-		}
-		adapter.updateSwimmers(race.getAllSwimmers());
-	}
-	
-	
-	//for fancy new BT service
 	private void receivedNewSwimmer(int i){
 		if(i > 1){
 			race.addSwimmer(i);

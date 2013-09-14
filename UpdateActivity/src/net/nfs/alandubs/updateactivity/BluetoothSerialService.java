@@ -319,6 +319,7 @@ public class BluetoothSerialService {
         private int bytesread;
         private int checksum;
         private byte tempbyte;
+        private String bytecode;
         private int[] code;
         private List<String> results;
         
@@ -349,6 +350,7 @@ public class BluetoothSerialService {
             checksum = 0;
             tempbyte = 0;
             bytesread = -1;
+            bytecode = "";
            	//Log.i(TAG, "Already have found: " + results.size() + " tags.");
         }
 
@@ -366,15 +368,16 @@ public class BluetoothSerialService {
                     bytes = mmInStream.read(buffer);
 
                     for (int i = 0; i < bytes; i++) {
-                    	//Log.d(TAG, "Reading: " + i + " of " + bytes + " from input stream");
+                    	//Log.d(TAG, "Reading: " + (i+1) + " of " + bytes + " from input stream, read: " + bytesread);
                         byte b = buffer[i];
                         try {
                         	if(bytesread >= 0 && bytesread <= 12){
                         		
-                            	/*char printableB = (char) b;
+                            	char printableB = (char) b;
                                 if (b < 32 || b > 126)
                                     printableB = ' ';
-                                Log.d(TAG, "'" + Character.toString(printableB) + "' (" + Integer.toString(b) + ")");*/
+                                //Log.d(TAG, "'" + Character.toString(printableB) + "' (" + Integer.toString(b) + ")");
+                                bytecode += "#0" + Integer.toString(b);
 
                                 if((b == 0x0D)||(b == 0x0A)||(b == 0x03)||(b == 0x02)) { // if header or stop bytes before the 10 digit reading 
                                 	Log.e(TAG, i + " Unexpected header while processing character "
@@ -406,7 +409,7 @@ public class BluetoothSerialService {
                         	else if(b == 2){ //does the extra condition above break this?
                         		init();
                         		bytesread = 0;
-                        		//Log.d(TAG, "Header found!");
+                        		Log.d(TAG, "Header found! (" + Integer.toString(b) + ")");
                         	}
                         	
                         	if(bytesread == 12){
@@ -414,17 +417,17 @@ public class BluetoothSerialService {
                         			Log.i(TAG, "Checksum negative: "+checksum);
                         		}
                         		String check = (code[5] == checksum ? "-passed" : "-error");
-                        		String r = "";
+                        		/*String r = "";
                         		for(int j = 0; j < 6; j++){
                         			r += Integer.toString(code[j]);
-                        		}
+                        		}*/
                                 
-                                //Log.d(TAG, "Check: " + code[5] + check);
-                                Log.d(TAG, r);
+                                Log.d(TAG, "Check: " + code[5] + check);
+                                //Log.d(TAG, "#002"+bytecode);
                                 if(code[5] == checksum) {
-                                	if(!results.contains(r)){
+                                	/*if(!results.contains(r)){
                                 		results.add(r);
-                                	}
+                                	}*/
                                 	//tell my mainactivity the good news
                                 	sendTag(code[5]);
                                 }
