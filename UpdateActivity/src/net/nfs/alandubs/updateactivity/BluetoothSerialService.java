@@ -23,6 +23,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
@@ -252,15 +255,36 @@ public class BluetoothSerialService {
 
         public ConnectThread(BluetoothDevice device) {
             mmDevice = device;
+            
+            Log.d(TAG, "Name: " + mmDevice.getName() + ", Address: " + mmDevice.getAddress());
+            
             BluetoothSocket tmp = null;
 
-            // Get a BluetoothSocket for a connection with the
-            // given BluetoothDevice
+            /*
+            // Get a BluetoothSocket using Reflection, but I don't know it's needed
+            Method m;
+            try {
+            	m = mmDevice.getClass().getMethod("createRfcommSocketToServiceRecord", new Class[] {UUID.class});
+            	tmp = (BluetoothSocket) m.invoke(mmDevice, SerialPortServiceClass_UUID);
+            } catch (SecurityException e) {
+            	Log.e(TAG, "create() failed", e);
+            } catch (NoSuchMethodException e) {
+            	Log.e(TAG, "create() failed", e);
+            } catch (IllegalArgumentException e) {
+            	Log.e(TAG, "create() failed", e);
+            } catch (IllegalAccessException e) {
+            	Log.e(TAG, "create() failed", e);
+            } catch (InvocationTargetException e) {
+            	Log.e(TAG, "create() failed", e);
+            }  
+            */
+            // Get a BluetoothSocket for a connection with the given BluetoothDevice
             try {
                 tmp = device.createRfcommSocketToServiceRecord(SerialPortServiceClass_UUID);
             } catch (IOException e) {
                 Log.e(TAG, "create() failed", e);
-            }
+            } 
+            
             mmSocket = tmp;
         }
 
@@ -288,6 +312,9 @@ public class BluetoothSerialService {
                 //BluetoothSerialService.this.start();
                 //TODO: did i comment this out?
                 return;
+            }
+            catch (NullPointerException e){
+            	Log.e(TAG, "no socket to connect to");
             }
 
             // Reset the ConnectThread because we're done
@@ -362,13 +389,14 @@ public class BluetoothSerialService {
 
             // Keep listening to the InputStream while connected
             while (true) {
-            	//Log.d(TAG, "Running");
+            	Log.d(TAG, "Running");
                 try {
                     // Read from the InputStream
                     bytes = mmInStream.read(buffer);
 
                     for (int i = 0; i < bytes; i++) {
                     	//Log.d(TAG, "Reading: " + (i+1) + " of " + bytes + " from input stream, read: " + bytesread);
+
                         byte b = buffer[i];
                         try {
                         	if(bytesread >= 0 && bytesread <= 12){
