@@ -20,7 +20,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 
 import java.lang.reflect.InvocationTargetException;
@@ -53,9 +57,11 @@ public class BluetoothSerialService {
     // Member fields
     private final BluetoothAdapter mAdapter;
     private final Handler mHandler;
-    private ConnectThread mConnectThread;
-    private ConnectedThread mConnectedThread;
+    private ConnectThread mConnectThread; //one connection thread should be enough
+    //private ConnectedThread mConnectedThread; //need array of these
+    private HashMap<String, ConnectedThread> mConnectedThreads;
     private int mState;
+    private HashMap<String, Integer> mStates;
     
     //private EmulatorView mEmulatorView;
 
@@ -73,12 +79,13 @@ public class BluetoothSerialService {
     public BluetoothSerialService(Context context, Handler handler) {
         mAdapter = BluetoothAdapter.getDefaultAdapter();
         mState = STATE_NONE;
+        mStates = new HashMap<String, Integer>();
         mHandler = handler;
-        //mEmulatorView = emulatorView;
+        mConnectedThreads = new HashMap<String, ConnectedThread>(); 
     }
 
     /**
-     * Set the current state of the chat connection
+     * Set the overall current state of the connection
      * @param state  An integer defining the current connection state
      */
     private synchronized void setState(int state) {
@@ -88,11 +95,36 @@ public class BluetoothSerialService {
         // Give the new state to the Handler so the UI Activity can update
         mHandler.obtainMessage(MainActivity.MESSAGE_STATE_CHANGE, state, -1).sendToTarget();
     }
+    
+    /**
+     * Set the current state of a device connection
+     * @param addr   A String which represents the MAC address of BT device
+     * @param state  An integer defining the current connection state
+     */
+    private synchronized void setState(String addr, int state) {
+        if (D) Log.d(TAG, "setState() " + mState + " -> " + state);
+
+       	mStates.put(addr, state);
+
+        // Give the new state to the Handler so the UI Activity can update
+        mHandler.obtainMessage(MainActivity.MESSAGE_STATE_CHANGE, state, -1).sendToTarget();
+    }
 
     /**
-     * Return the current connection state. */
+     * Return the overall connection state. */
     public synchronized int getState() {
         return mState;
+    }
+    
+    /**
+     * Return the current device connection state */
+    public synchronized int getState(String addr) {
+        if(mStates.containsKey(addr)){
+        	return mStates.get(addr);
+        }
+        else{
+        	return STATE_NONE;
+        }
     }
 
     /**
@@ -107,34 +139,54 @@ public class BluetoothSerialService {
         	mConnectThread = null;
         }
 
+        // Cancel all threads currently running a connection
+        cancelAllConnected();
+        
         // Cancel any thread currently running a connection
+        /*
         if (mConnectedThread != null) {
         	mConnectedThread.cancel(); 
         	mConnectedThread = null;
-        }
+        }*/
 
         setState(STATE_NONE);
+        mStates.clear();
     }
 
     /**
      * Start the ConnectThread to initiate a connection to a remote device.
+     * First point of connection
      * @param device  The BluetoothDevice to connect
      */
     public synchronized void connect(BluetoothDevice device) {
-        if (D) Log.d(TAG, "connect to: " + device);
-
+        if (D) Log.d(TAG, "connect to: " + device + " > " + device.getAddress());
+        
+        String address = device.getAddress();
+        //int state = getState(address);
+        
         // Cancel any thread attempting to make a connection
-        if (mState == STATE_CONNECTING) {
-            if (mConnectThread != null) {mConnectThread.cancel(); mConnectThread = null;}
+       /* if(state == STATE_CONNECTING && mConnectedThreads.get(address) != null){
+       		mConnectedThreads.get(address).cancel();
+        }*/
+        if (mState == STATE_CONNECTING && mConnectThread != null) {
+            mConnectThread.cancel();
+            mConnectThread = null;
         }
 
         // Cancel any thread currently running a connection
-        if (mConnectedThread != null) {mConnectedThread.cancel(); mConnectedThread = null;}
+        //if (mConnectedThread != null) {mConnectedThread.cancel(); mConnectedThread = null;}
+        if (mConnectedThreads.get(address) != null) {
+        	mConnectedThreads.get(address).cancel();
+        	mConnectedThreads.remove(address);
+        }
 
+        //mConnectThread as array with device.getAddress() as key? no, mConnectedThreads should be array
+        
         // Start the thread to connect with the given device
         mConnectThread = new ConnectThread(device);
         mConnectThread.start();
         setState(STATE_CONNECTING);
+        setState(address, STATE_CONNECTING);
     }
 
     /**
@@ -143,7 +195,8 @@ public class BluetoothSerialService {
      * @param device  The BluetoothDevice that has been connected
      */
     public synchronized void connected(BluetoothSocket socket, BluetoothDevice device) {
-        if (D) Log.d(TAG, "connected");
+        if (D) Log.d(TAG, "connectedto: " + device + " > " + device.getAddress());
+        String address = device.getAddress();
 
         // Cancel the thread that completed the connection
         if (mConnectThread != null) {
@@ -152,14 +205,14 @@ public class BluetoothSerialService {
         }
 
         // Cancel any thread currently running a connection
-        if (mConnectedThread != null) {
-        	mConnectedThread.cancel(); 
-        	mConnectedThread = null;
+        if (mConnectedThreads.get(address) != null) {
+        	mConnectedThreads.get(address).cancel();
+        	mConnectedThreads.remove(address);
         }
 
         // Start the thread to manage the connection and perform transmissions
-        mConnectedThread = new ConnectedThread(socket);
-        mConnectedThread.start();
+        mConnectedThreads.put(address, new ConnectedThread(socket, address));
+        mConnectedThreads.get(address).start();
 
         // Send the name of the connected device back to the UI Activity
         Message msg = mHandler.obtainMessage(MainActivity.MESSAGE_DEVICE_NAME);
@@ -169,6 +222,7 @@ public class BluetoothSerialService {
         mHandler.sendMessage(msg);
 
         setState(STATE_CONNECTED);
+        setState(address, STATE_CONNECTED);
     }
 
     /**
@@ -177,25 +231,35 @@ public class BluetoothSerialService {
     public synchronized void stop() {
         if (D) Log.d(TAG, "stop");
 
-
         if (mConnectThread != null) {
         	mConnectThread.cancel(); 
         	mConnectThread = null;
         }
 
-        if (mConnectedThread != null) {
-        	mConnectedThread.cancel(); 
-        	mConnectedThread = null;
-        }
+        // Cancel all threads currently running a connection
+        cancelAllConnected();
 
         setState(STATE_NONE);
+    }
+    
+    /*
+     * Cancel all threads currently running a connection
+     */
+    private synchronized void cancelAllConnected(){
+		Iterator<Entry<String, ConnectedThread>> it = mConnectedThreads.entrySet().iterator();
+		while(it.hasNext()){
+			Map.Entry<String, ConnectedThread> pairs = (Map.Entry<String, ConnectedThread>)it.next();
+			pairs.getValue().cancel();
+		}
+		
+		mConnectedThreads.clear();
     }
 
     /**
      * Write to the ConnectedThread in an unsynchronized manner
      * @param out The bytes to write
      * @see ConnectedThread#write(byte[])
-     */
+
     public void write(byte[] out) {
         // Create temporary object
         ConnectedThread r;
@@ -206,13 +270,13 @@ public class BluetoothSerialService {
         }
         // Perform the write unsynchronized
         r.write(out);
-    }
+    }     */
     
     /**
      * Indicate that the connection attempt failed and notify the UI Activity.
      */
-    private void connectionFailed() {
-        setState(STATE_NONE);
+    private void connectionFailed(String addr) {
+        setState(addr, STATE_NONE);
 
         // Send a failure message back to the Activity
         Message msg = mHandler.obtainMessage(MainActivity.MESSAGE_TOAST);
@@ -225,13 +289,13 @@ public class BluetoothSerialService {
     /**
      * Indicate that the connection was lost and notify the UI Activity.
      */
-    private void connectionLost() {
-        setState(STATE_NONE);
+    private void connectionLost(String addr) {
+        setState(addr, STATE_NONE);
 
         // Send a failure message back to the Activity
         Message msg = mHandler.obtainMessage(MainActivity.MESSAGE_TOAST);
         Bundle bundle = new Bundle();
-        bundle.putString(MainActivity.TOAST, "Device connection was lost");
+        bundle.putString(MainActivity.TOAST, "Device connection to: " + addr + " was lost");
         msg.setData(bundle);
         mHandler.sendMessage(msg);
     }
@@ -259,7 +323,6 @@ public class BluetoothSerialService {
             Log.d(TAG, "Name: " + mmDevice.getName() + ", Address: " + mmDevice.getAddress());
             
             BluetoothSocket tmp = null;
-
             /*
             // Get a BluetoothSocket using Reflection, but I don't know it's needed
             Method m;
@@ -301,16 +364,14 @@ public class BluetoothSerialService {
                 // successful connection or an exception
                 mmSocket.connect();
             } catch (IOException e) {
-                connectionFailed();
+                connectionFailed(mmDevice.getAddress());
                 // Close the socket
                 try {
                     mmSocket.close();
                 } catch (IOException e2) {
                     Log.e(TAG, "unable to close() socket during connection failure", e2);
                 }
-                // Start the service over to restart listening mode
-                //BluetoothSerialService.this.start();
-                //TODO: did i comment this out?
+
                 return;
             }
             catch (NullPointerException e){
@@ -342,7 +403,8 @@ public class BluetoothSerialService {
     private class ConnectedThread extends Thread {
         private final BluetoothSocket mmSocket;
         private final InputStream mmInStream;
-        private final OutputStream mmOutStream;
+        //private final OutputStream mmOutStream;
+        private final String mmAddress;
         private int bytesread;
         private int checksum;
         private byte tempbyte;
@@ -351,23 +413,24 @@ public class BluetoothSerialService {
         private List<String> results;
         
 
-        public ConnectedThread(BluetoothSocket socket) {
+        public ConnectedThread(BluetoothSocket socket, String address) {
             Log.d(TAG, "create ConnectedThread");
             mmSocket = socket;
+            mmAddress = address;
             InputStream tmpIn = null;
-            OutputStream tmpOut = null;
+            //OutputStream tmpOut = null;
             results = new ArrayList<String>();
 
             // Get the BluetoothSocket input and output streams
             try {
                 tmpIn = socket.getInputStream();
-                tmpOut = socket.getOutputStream();
+                //tmpOut = socket.getOutputStream();
             } catch (IOException e) {
                 Log.e(TAG, "temp sockets not created", e);
             }
 
             mmInStream = tmpIn;
-            mmOutStream = tmpOut;
+            //mmOutStream = tmpOut;
             
             init();
         }
@@ -444,14 +507,9 @@ public class BluetoothSerialService {
                         		if(checksum < 0){
                         			Log.i(TAG, "Checksum negative: "+checksum);
                         		}
-                        		String check = (code[5] == checksum ? "-passed" : "-error");
-                        		/*String r = "";
-                        		for(int j = 0; j < 6; j++){
-                        			r += Integer.toString(code[j]);
-                        		}*/
-                                
-                                Log.d(TAG, "Check: " + code[5] + check);
+                        		//String check = (code[5] == checksum ? "-passed" : "-error");
                                 //Log.d(TAG, "#002"+bytecode);
+                                //Log.d(TAG, "Check: " + code[5] + (code[5] == checksum ? "-passed" : "-error"));
                                 if(code[5] == checksum) {
                                 	/*if(!results.contains(r)){
                                 		results.add(r);
@@ -478,7 +536,7 @@ public class BluetoothSerialService {
                     
                 } catch (IOException e) {
                     Log.e(TAG, "disconnected", e);
-                    connectionLost();
+                    connectionLost(mmAddress);
                     break;
                 }
             }
@@ -489,7 +547,7 @@ public class BluetoothSerialService {
         /**
          * Write to the connected OutStream.
          * @param buffer  The bytes to write
-         */
+
         public void write(byte[] buffer) {
             try {
                 mmOutStream.write(buffer);
@@ -501,7 +559,7 @@ public class BluetoothSerialService {
                 Log.e(TAG, "Exception during write", e);
             }
         }
-
+         */
         public void cancel() {
             try {
                 mmSocket.close();

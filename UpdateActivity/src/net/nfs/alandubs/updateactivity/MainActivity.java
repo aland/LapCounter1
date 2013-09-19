@@ -8,6 +8,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
+import java.util.ArrayList;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -48,6 +49,7 @@ public class MainActivity extends Activity {
     
     // Name of the connected device
     private String mConnectedDeviceName = null;
+    private ArrayList<String> mConnectedDeviceNames;
 
     /**
      * Set to true to add debugging code and logging.
@@ -146,6 +148,7 @@ public class MainActivity extends Activity {
 		}
 
         mSerialService = new BluetoothSerialService(this, mHandlerBT);
+        mConnectedDeviceNames = new ArrayList<String>();
         
 	    race = new RaceEvent(mMaxLaps);
 		listView = (ListView) findViewById(R.id.swimmersView);
@@ -337,9 +340,9 @@ public class MainActivity extends Activity {
 	}
 
 	//don't think I'll need this
-    public void send(byte[] out) {
+    /*public void send(byte[] out) {
     	mSerialService.write( out );
-    }
+    }*/
     
     // The Handler that gets information back from the BluetoothService
     @SuppressLint("HandlerLeak") // complains this might leak if not static
@@ -352,13 +355,13 @@ public class MainActivity extends Activity {
                 if(DEBUG) Log.i(LOG_TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1);
                 switch (msg.arg1) {
                 case BluetoothSerialService.STATE_CONNECTED:
-                	if (mMenuItemConnect != null) {
+                	/*if (mMenuItemConnect != null) {
                 		mMenuItemConnect.setIcon(android.R.drawable.ic_menu_close_clear_cancel);
                 		mMenuItemConnect.setTitle(R.string.disconnect);
-                	}
+                	}*/
                 	
                     mTitle.setText(R.string.title_connected_to);
-                    mTitle.append(mConnectedDeviceName);
+                    mTitle.append(Integer.toString(mConnectedDeviceNames.size()));
                     break;
                     
                 case BluetoothSerialService.STATE_CONNECTING:
@@ -367,14 +370,18 @@ public class MainActivity extends Activity {
                     
                 case BluetoothSerialService.STATE_LISTEN:
                 case BluetoothSerialService.STATE_NONE:
-                	if (mMenuItemConnect != null) {
-                		//mMenuItemConnect.setIcon(android.R.drawable.ic_menu_search);
+                	/*if (mMenuItemConnect != null) {
+                		mMenuItemConnect.setIcon(android.R.drawable.ic_menu_search);
                 		mMenuItemConnect.setTitle(R.string.connect);
-                	}
-
-            		//mInputManager.hideSoftInputFromWindow(mEmulatorView.getWindowToken(), 0);
+                	}*/
                 	
-                    mTitle.setText(R.string.title_not_connected);
+                	if(mConnectedDeviceNames.size() > 0){
+                        mTitle.setText(R.string.title_connected_to);
+                        mTitle.append(Integer.toString(mConnectedDeviceNames.size()));
+                	}
+                	else {
+                		mTitle.setText(R.string.title_not_connected);
+                	}
 
                     break;
                 }
@@ -383,13 +390,16 @@ public class MainActivity extends Activity {
             case MESSAGE_DEVICE_NAME:
                 // save the connected device's name
                 mConnectedDeviceName = msg.getData().getString(DEVICE_NAME);
+                mConnectedDeviceNames.add(msg.getData().getString(DEVICE_NAME));
                 Toast.makeText(getApplicationContext(), "Connected to "
                                + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
                 break;
+                
             case MESSAGE_TOAST:
                 Toast.makeText(getApplicationContext(), msg.getData().getString(TOAST),
                                Toast.LENGTH_SHORT).show();
                 break;
+                
             case MESSAGE_GETTAG:
             	if(race.isStarted()){
             		receivedLap(msg.getData().getInt(RFIDTAG));
@@ -460,17 +470,17 @@ public class MainActivity extends Activity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
         case R.id.connect:
-        	
-        	if (getConnectionState() == BluetoothSerialService.STATE_NONE) {
+        	//should be getConnectionState(device_address)
+        	//if (getConnectionState() == BluetoothSerialService.STATE_NONE) {
         		// Launch the DeviceListActivity to see devices and do scan
         		Intent serverIntent = new Intent(this, DeviceListActivity.class);
         		startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
-        	}
-        	else
-            	if (getConnectionState() == BluetoothSerialService.STATE_CONNECTED) {
-            		mSerialService.stop();
-		    		mSerialService.start();
-            	}
+        	//}
+        	//else
+            	//if (getConnectionState() == BluetoothSerialService.STATE_CONNECTED) {
+            		//mSerialService.stop();
+		    		//mSerialService.start();
+            	//}
             return true;
         case R.id.preferences:
        		doPreferences();	
