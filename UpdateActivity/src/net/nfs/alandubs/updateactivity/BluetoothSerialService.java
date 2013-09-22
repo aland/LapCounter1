@@ -103,11 +103,20 @@ public class BluetoothSerialService {
      */
     private synchronized void setState(String addr, int state) {
         if (D) Log.d(TAG, "setState() " + mState + " -> " + state);
-
-       	mStates.put(addr, state);
-
+        
+        mStates.put(addr, state);
+        
         // Give the new state to the Handler so the UI Activity can update
-        mHandler.obtainMessage(MainActivity.MESSAGE_STATE_CHANGE, state, -1).sendToTarget();
+        
+        //what is the difference between Message+Bundle and sendMessage vs obtainMessage().sendtotarget
+        //obtainMessage is shorter, but can't use setData?
+        Message msg = mHandler.obtainMessage(MainActivity.MESSAGE_STATE_CHANGE, state, -1);
+        Bundle bundle = new Bundle();
+        bundle.putString(MainActivity.DEVICE_ADDRESS, addr);
+        msg.setData(bundle);
+        msg.sendToTarget();
+
+        //mHandler.obtainMessage(MainActivity.MESSAGE_STATE_CHANGE, state, -1, addr).sendToTarget();
     }
 
     /**
@@ -195,7 +204,7 @@ public class BluetoothSerialService {
      * @param device  The BluetoothDevice that has been connected
      */
     public synchronized void connected(BluetoothSocket socket, BluetoothDevice device) {
-        if (D) Log.d(TAG, "connectedto: " + device + " > " + device.getAddress());
+        if (D) Log.d(TAG, "connectedto: " + device.getName() + " > " + device.getAddress());
         String address = device.getAddress();
 
         // Cancel the thread that completed the connection
@@ -215,9 +224,10 @@ public class BluetoothSerialService {
         mConnectedThreads.get(address).start();
 
         // Send the name of the connected device back to the UI Activity
-        Message msg = mHandler.obtainMessage(MainActivity.MESSAGE_DEVICE_NAME);
+        Message msg = mHandler.obtainMessage(MainActivity.MESSAGE_DEVICE_CONNECT);
         Bundle bundle = new Bundle();
         bundle.putString(MainActivity.DEVICE_NAME, device.getName());
+        bundle.putString(MainActivity.DEVICE_ADDRESS, device.getAddress());
         msg.setData(bundle);
         mHandler.sendMessage(msg);
 

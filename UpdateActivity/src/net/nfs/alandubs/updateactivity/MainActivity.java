@@ -47,8 +47,7 @@ public class MainActivity extends Activity {
 
     private static TextView mTitle;
     
-    // Name of the connected device
-    private String mConnectedDeviceName = null;
+    // The connected devices (actually address)
     private ArrayList<String> mConnectedDeviceNames;
 
     /**
@@ -75,11 +74,12 @@ public class MainActivity extends Activity {
     public static final int MESSAGE_STATE_CHANGE = 1;
     public static final int MESSAGE_READ = 2;
     public static final int MESSAGE_WRITE = 3;
-    public static final int MESSAGE_DEVICE_NAME = 4;
+    public static final int MESSAGE_DEVICE_CONNECT = 4;
     public static final int MESSAGE_TOAST = 5;
 
     // Key names received from the BluetoothChatService Handler
     public static final String DEVICE_NAME = "device_name";
+    public static final String DEVICE_ADDRESS = "device_address";
     public static final String TOAST = "toast";
     
 	private BluetoothAdapter mBluetoothAdapter = null;
@@ -94,7 +94,6 @@ public class MainActivity extends Activity {
     
     private int mMaxLaps = 9;
     
-
     private SharedPreferences mPrefs;
 	
     private MenuItem mMenuItemConnect;
@@ -375,6 +374,10 @@ public class MainActivity extends Activity {
                 		mMenuItemConnect.setTitle(R.string.connect);
                 	}*/
                 	
+                	//Should be able to pick up when a device connection is lost here
+                	mConnectedDeviceNames.remove(msg.getData().getString(DEVICE_ADDRESS));
+                	
+                	
                 	if(mConnectedDeviceNames.size() > 0){
                         mTitle.setText(R.string.title_connected_to);
                         mTitle.append(Integer.toString(mConnectedDeviceNames.size()));
@@ -387,12 +390,11 @@ public class MainActivity extends Activity {
                 }
                 break;
               
-            case MESSAGE_DEVICE_NAME:
-                // save the connected device's name
-                mConnectedDeviceName = msg.getData().getString(DEVICE_NAME);
-                mConnectedDeviceNames.add(msg.getData().getString(DEVICE_NAME));
+            case MESSAGE_DEVICE_CONNECT:
+                // Connected to device Toast the connected device's name and save the address
+                mConnectedDeviceNames.add(msg.getData().getString(DEVICE_ADDRESS));
                 Toast.makeText(getApplicationContext(), "Connected to "
-                               + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
+                               + msg.getData().getString(DEVICE_NAME), Toast.LENGTH_SHORT).show();
                 break;
                 
             case MESSAGE_TOAST:

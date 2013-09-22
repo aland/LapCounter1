@@ -12,7 +12,7 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 
 public class SwimmerAdapter extends BaseAdapter {
-	
+	private final String TAG = "swimmeradapter";
 	private int maxLaps;
 	private List<Swimmer> swimmers = Collections.emptyList();
 	private long start;
@@ -52,30 +52,21 @@ public class SwimmerAdapter extends BaseAdapter {
 	}
 	
 	private int nanoToSec(long l) {
-		/*
-		 * 1L			=	nano second
-		 * 1000L		=	micro second
-		 * 1000000L		=	milli second
-		 * 1000000000L	=	second
-		 * 
-		 * 1 second = 1,000 milliseconds = 1,000,000 microseconds = 1,000,000,000 nanoseconds
-		 */
 		if(l == 0){
 			return 0;
 		}
-		else if(l < 1000000L){
-			Log.d("swimmeradapter", "nanoToSec was passed small value");
+		else if(l < NanoTime.second){
+			Log.d(TAG, "nanoToSec was passed small value");
 			return 0;
 		}
 		else {
-			l = l / 1000000L;
+			l = l / NanoTime.second;
 			if(l > Integer.MAX_VALUE) {
-				Log.d("swimmeradapter", "value too big!");
+				Log.d(TAG, "value too big!");
 				return 0;
 			}
 			
 			return (int) l;
-			
 		}
 	}
     
@@ -87,9 +78,8 @@ public class SwimmerAdapter extends BaseAdapter {
 	@Override
 	public View getView(int position, View convertView, ViewGroup parent) {
 
-		String name;
-		long lastlap;
-		int max;
+		int remains;
+		
 		ViewHolder holder = null;
 
 		//link to existing view if available, other make new
@@ -104,15 +94,18 @@ public class SwimmerAdapter extends BaseAdapter {
 			holder = (ViewHolder) convertView.getTag();
 		}
 		
-		Swimmer swimmer = (Swimmer) getItem(position);
-        name = swimmer.getName();
-
-        lastlap = swimmer.getLastLapTime(this.start);
-        
-        max = Math.max( this.maxLaps - swimmer.getLaps(), 0);	
-		
-		holder.txtDesc.setText(Integer.toString(max) + " to go, last lap: " + Integer.toString(nanoToSec(lastlap)));
-		holder.txtTitle.setText(name);
+		try{
+			Swimmer swimmer = (Swimmer) getItem(position);
+			String lastLap = swimmer.getLaps() > 0 ? Long.toString(swimmer.getLastLap()) : "N/A";
+	
+	        remains = Math.max( this.maxLaps - swimmer.getLaps(), 0);	
+			
+			holder.txtDesc.setText(Integer.toString(remains) + " to go, last lap: " + lastLap);
+			holder.txtTitle.setText(swimmer.getName());
+		}
+		catch(NumberFormatException e){
+			Log.e(TAG, "Swimmer name not number" + e.getMessage());
+		}
 		
 		return convertView; 
 	}

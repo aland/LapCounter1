@@ -11,12 +11,21 @@ import android.util.Log;
 
 
 public class Swimmer {
+	private final String TAG = "swimmer";
+	private long lastLapTime; //keep the timestamp for previous lap / race start 
 	private List<Long> lapTimes = new ArrayList<Long>();
-	private String name; //just for something to print
+	private String name; //RFID checksum (used for id)
 
+	@Deprecated
 	public Swimmer() {
 		Random r = new Random();
-		name = "Swimmer" + Integer.toString(r.nextInt(100));
+		name = "SwimmerR" + Integer.toString(r.nextInt(100));
+	}
+	
+	public Swimmer(int id) {
+		//pad so that name is 3 digits, hopefully there's no checksum > 999 but I think we'll be alright
+		name = id < 100 ? String.format("%03d", id) : Integer.toString(id);
+		lastLapTime = 0L;
 	}
 	
 	public String getName() {
@@ -27,50 +36,50 @@ public class Swimmer {
 		return lapTimes.size();
 	}
 	
-	public void setLapComplete(long time) {
-		lapTimes.add(time);
+	public void start(long time) {
+		lastLapTime = time;
 	}
 	
-	public long getLastLapTime(long start) {
-		long l = 0L;
-		
-		if (lapTimes.size() == 0) {
-		 //nothing?
+	public void setLapComplete(long time) {
+		if(lastLapTime <= 0L){
+			Log.e(TAG, "No start time / previous lap time set");
 		}
-		else if (lapTimes.size() == 1) {
-			l = this.getLastLap() - start;
-		}
-		else if (lapTimes.size() > 1) {
-			l = this.getLastLap() - this.getLastLap(lapTimes.size() - 1);
-		}
-		else if (lapTimes.size() < 0) {
-			//problem
-			Log.d("swimmer","getting lap time problem");
-		}
-		
-		return l;
+		lapTimes.add((time - lastLapTime) / NanoTime.milli);
+		lastLapTime = time;
+	}
+
+	
+	public long getLastLapTime() {
+		return lastLapTime;
 	}
 	
 	public long getLastLap() {
+		return lapTimes.size() > 0 ? lapTimes.get(lapTimes.size() - 1) : 0L;
+		/*
 		if(lapTimes.size() == 0) {
-			return 0;
+			Log.e(TAG, "No laps completed");
+			return 0L;
 		}
 		else {
-			return getLastLap(lapTimes.size());
-		}
+			return lapTimes.get(lapTimes.size() - 1);
+		}*/
 	}
+	
+	@Deprecated // no need for it
 	public long getLastLap(int i) {
 		return lapTimes.get(i - 1);
 	}
 	
 	@Override
 	public String toString(){
-		String out = "";
 		int max = getLaps();
+		StringBuilder out = new StringBuilder(max * 10); //rough estimate of needed length, probably way over
+		out.append(getName());
+		
 		for(int i = 0; i < max; i++) {
-			out += Long.toString(lapTimes.get(i)) + ',';
+			out.append(',').append(lapTimes.get(i));
 		}
-		return out;
+		return out.toString();
 	}
 
 
