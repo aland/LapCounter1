@@ -4,9 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import android.R.string;
-import android.os.SystemClock;
-import android.text.format.Time;
 import android.util.Log;
 
 

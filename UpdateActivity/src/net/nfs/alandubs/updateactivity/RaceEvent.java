@@ -10,10 +10,6 @@ import android.util.SparseArray;
 public class RaceEvent {
 	private final String TAG = "RaceEvent";
 	//Control the minimum interval between laps (RFID reader will send multiple events for the duration of proximity)
-	/*private final long micro	= 1000L;
-	private final long milli	= 1000000L;
-	private final long second	= 1000000000L;*/
-	
 	private final long interval = NanoTime.second;
 
 	private int totalLaps;
@@ -49,7 +45,7 @@ public class RaceEvent {
 		return !(endTime == null);
 	}
 	
-	public void addSwimmer(int id) { //assuming the unique identifier is int
+	public void addSwimmer(int id) {
 		if(startTime == null && validId(id)){
 			Swimmer s = new Swimmer(id);
 			swimmers.put(id, s);

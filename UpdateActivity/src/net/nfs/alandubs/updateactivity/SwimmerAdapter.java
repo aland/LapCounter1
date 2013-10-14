@@ -27,7 +27,7 @@ public class SwimmerAdapter extends BaseAdapter {
 	
 	public void updateSwimmers(List<Swimmer> swimmers){
 		ThreadPreconditions.checkOnMainThread();
-		this.swimmers = swimmers; //other checks?
+		this.swimmers = swimmers;
 		notifyDataSetChanged();
 	}
 	
@@ -51,25 +51,6 @@ public class SwimmerAdapter extends BaseAdapter {
 		return position;
 	}
 	
-	private int nanoToSec(long l) {
-		if(l == 0){
-			return 0;
-		}
-		else if(l < NanoTime.second){
-			Log.d(TAG, "nanoToSec was passed small value");
-			return 0;
-		}
-		else {
-			l = l / NanoTime.second;
-			if(l > Integer.MAX_VALUE) {
-				Log.d(TAG, "value too big!");
-				return 0;
-			}
-			
-			return (int) l;
-		}
-	}
-    
 	private class ViewHolder {
         TextView txtTitle;
         TextView txtDesc;
@@ -78,8 +59,6 @@ public class SwimmerAdapter extends BaseAdapter {
 	@Override
 	public View getView(int position, View convertView, ViewGroup parent) {
 
-		int remains;
-		
 		ViewHolder holder = null;
 
 		//link to existing view if available, other make new

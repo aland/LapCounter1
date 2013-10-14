@@ -78,7 +78,7 @@ public class MainActivity extends Activity implements OnClickListener {
     public static final int MESSAGE_DEVICE_CONNECT = 4;
     public static final int MESSAGE_TOAST = 5;
 
-    // Key names received from the BluetoothChatService Handler
+    // Key names received from the BluetoothSerialService Handler
     public static final String DEVICE_NAME = "device_name";
     public static final String DEVICE_ADDRESS = "device_address";
     public static final String TOAST = "toast";
@@ -97,7 +97,7 @@ public class MainActivity extends Activity implements OnClickListener {
     
     private SharedPreferences mPrefs;
 	
-    private MenuItem mMenuItemConnect;
+    //private MenuItem mMenuItemConnect;
     
 
 	/**
@@ -175,8 +175,6 @@ public class MainActivity extends Activity implements OnClickListener {
 		PrintWriter pw = null;
 		
 		String state = Environment.getExternalStorageState();
-		//DateFormat df = new android.text.format.DateFormat();
-		
 
 		if (Environment.MEDIA_MOUNTED.equals(state)) {
 		    // We can read and write the media
@@ -237,7 +235,7 @@ public class MainActivity extends Activity implements OnClickListener {
 			Log.e(LOG_TAG, "+ ON RESUME +");
 		}
 		
-		//BlueTerm stuff follows, all this will likely change to receive from multiple bt
+		//BlueTerm stuff follows
 		if (!mEnablingBT) { // If we are turning on the BT we cannot check if it's enable
 		    if ( (mBluetoothAdapter != null)  && (!mBluetoothAdapter.isEnabled()) ) {
 			
@@ -272,7 +270,6 @@ public class MainActivity extends Activity implements OnClickListener {
 
 		    if (mBluetoothAdapter != null) {
 		    	readPrefs();
-		    	//updatePrefs();
 		    }
 		}
 		
@@ -358,29 +355,16 @@ public class MainActivity extends Activity implements OnClickListener {
                 if(DEBUG) Log.i(LOG_TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1);
                 switch (msg.arg1) {
                 case BluetoothSerialService.STATE_CONNECTED:
-                	/*if (mMenuItemConnect != null) {
-                		mMenuItemConnect.setIcon(android.R.drawable.ic_menu_close_clear_cancel);
-                		mMenuItemConnect.setTitle(R.string.disconnect);
-                	}*/
-                	
                     mTitle.setText(R.string.title_connected_to);
                     mTitle.append(Integer.toString(mConnectedDeviceNames.size()));
                     break;
-                    
                 case BluetoothSerialService.STATE_CONNECTING:
                     mTitle.setText(R.string.title_connecting);
                     break;
-                    
                 case BluetoothSerialService.STATE_LISTEN:
                 case BluetoothSerialService.STATE_NONE:
-                	/*if (mMenuItemConnect != null) {
-                		mMenuItemConnect.setIcon(android.R.drawable.ic_menu_search);
-                		mMenuItemConnect.setTitle(R.string.connect);
-                	}*/
-                	
-                	//Should be able to pick up when a device connection is lost here
+                	//Device connection is lost
                 	mConnectedDeviceNames.remove(msg.getData().getString(DEVICE_ADDRESS));
-                	
                 	
                 	if(mConnectedDeviceNames.size() > 0){
                         mTitle.setText(R.string.title_connected_to);
@@ -389,7 +373,6 @@ public class MainActivity extends Activity implements OnClickListener {
                 	else {
                 		mTitle.setText(R.string.title_not_connected);
                 	}
-
                     break;
                 }
                 break;
@@ -407,6 +390,7 @@ public class MainActivity extends Activity implements OnClickListener {
                 break;
                 
             case MESSAGE_GETTAG:
+            	//Received RFID tag
             	if(race.isStarted()){
             		receivedLap(msg.getData().getInt(RFIDTAG));
             	}
@@ -468,7 +452,7 @@ public class MainActivity extends Activity implements OnClickListener {
     	Log.d(LOG_TAG, menu.toString());
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.main, menu);
-        mMenuItemConnect = menu.getItem(0);
+        //mMenuItemConnect = menu.getItem(0);
         return true;
     }
 
@@ -476,17 +460,10 @@ public class MainActivity extends Activity implements OnClickListener {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
         case R.id.connect:
-        	//should be getConnectionState(device_address)
-        	//if (getConnectionState() == BluetoothSerialService.STATE_NONE) {
-        		// Launch the DeviceListActivity to see devices and do scan
-        		Intent serverIntent = new Intent(this, DeviceListActivity.class);
-        		startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
-        	//}
-        	//else
-            	//if (getConnectionState() == BluetoothSerialService.STATE_CONNECTED) {
-            		//mSerialService.stop();
-		    		//mSerialService.start();
-            	//}
+
+       		Intent serverIntent = new Intent(this, DeviceListActivity.class);
+       		startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE);
+
             return true;
         case R.id.preferences:
        		doPreferences();	
@@ -622,9 +599,7 @@ public class MainActivity extends Activity implements OnClickListener {
 	}
 	
 	private void receivedNewSwimmer(int i){
-		if(race.isValidId(i)){
-			race.addSwimmer(i);
-		}
+		race.addSwimmer(i);
 
 		TextView swimmersCount = (TextView) findViewById(R.id.numSwimmersView);
 		swimmersCount.setText(Integer.toString(race.getSwimmers()));
@@ -632,9 +607,7 @@ public class MainActivity extends Activity implements OnClickListener {
 	}
 	
 	private void receivedLap(int i){
-		if(race.isValidId(i)){
-			race.lap(i);
-		}
+		race.lap(i);
 
 		adapter.updateSwimmers(race.getAllSwimmers());
 	}
