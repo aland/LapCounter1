@@ -31,6 +31,7 @@ import android.util.SparseArray;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View.OnClickListener;
 import android.view.Window;
 import android.view.View;
 import android.view.Window;
@@ -40,7 +41,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements OnClickListener {
     // Intent request codes
     private static final int REQUEST_CONNECT_DEVICE = 1;
     private static final int REQUEST_ENABLE_BT = 2;
@@ -156,24 +157,10 @@ public class MainActivity extends Activity {
 		adapter.updateSwimmers(race.getAllSwimmers());
 		
 		Button startButton = (Button) this.findViewById(R.id.startButton);
-		startButton.setOnClickListener(new View.OnClickListener() {
-		    public void onClick(View v) {
-		    	startRace();
-		    }
-		});
-		
 		Button exportButton = (Button) this.findViewById(R.id.exportButton);
-		exportButton.setOnClickListener(new View.OnClickListener() {
-		    public void onClick(View v) {
-		    	if(race.allCompleted()){
-		    		Log.d(LOG_TAG, race.toString());
-		    		writeToFile(race);
-		    	}
-		    }
-		});
-		
-		
-		
+		startButton.setOnClickListener(this);
+		exportButton.setOnClickListener(this);
+
 		if (DEBUG)
 			Log.e(LOG_TAG, "+++ DONE IN ON CREATE +++");
 		
@@ -316,6 +303,23 @@ public class MainActivity extends Activity {
         if (mSerialService != null)
         	mSerialService.stop();
 
+	}
+	
+	@Override
+	public void onClick(View v){
+		//Log.d(LOG_TAG, "onClick view" + v.getId());
+		switch(v.getId()){
+		case R.id.startButton:
+			startRace();
+			break;
+		case R.id.exportButton:
+	    	if(race.allCompleted()){
+	    		Log.d(LOG_TAG, race.toString());
+	    		writeToFile(race);
+	    	}
+	    	
+			break;
+		}
 	}
 	
     private void readPrefs() {
