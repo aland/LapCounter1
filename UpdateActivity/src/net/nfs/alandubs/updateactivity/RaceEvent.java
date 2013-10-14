@@ -21,12 +21,12 @@ public class RaceEvent {
 	private Long startTime;
 	private Long endTime;
 
-	public RaceEvent(int laps) {
-		if(laps < 1){
-			laps = 1;
-		}
-		totalLaps = laps;
+	public RaceEvent() {
 		completed = 0;
+	}
+	
+	private void setLaps(int laps){
+		totalLaps = Math.max(1, laps);	
 	}
 	
 	public int getMaxLaps() {
@@ -85,6 +85,9 @@ public class RaceEvent {
 		return swimmers.size();
 	}
 	
+	public int getSwimmers(int id){
+		return getSwimmersLaps(id);
+	}
 	public int getSwimmersLaps(int id){
 		if(swimmers.indexOfKey(id) >= 0){
 			return swimmers.get(id).getLaps();
@@ -94,18 +97,35 @@ public class RaceEvent {
 		}
 	}
 	
-	public void start(){
+	public boolean start(int laps){
 		int size = swimmers.size();
-		if(startTime == null && size >= 1) {
+		if(size >= 1){
 			startTime = System.nanoTime();
+			setLaps(laps);
 			Log.d(TAG, "Started at: " + Long.toString(startTime / NanoTime.milli));
 			for(int i = 0; i < size; i++){
 				swimmers.valueAt(i).start(startTime);
 			}
-		} // else restart?
-		else {
-			Log.d("debug", "start time already set or no swimmers set");
+			return true;
 		}
+		else {
+			Log.d(TAG, "No swimmers set");
+		}
+		return false;
+	}
+	
+	public boolean restart(){
+		int size = swimmers.size();
+		if(size >= 1){
+			startTime = null;
+			endTime = null;
+			completed = 0;
+			for(int i = 0; i < size; i++){
+				swimmers.valueAt(i).restart();
+			}
+			return true;
+		}
+		return false;
 	}
 	
 	public void lap(int id){

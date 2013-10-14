@@ -32,7 +32,9 @@
     
     <!-- Application buttons -->
 	<string name="button_start">Start</string>
+	<string name="button_stop">Stop</string>
 	<string name="button_export">Export</string>
+	<string name="button_reset">Reset</string>
 	
     <!-- Options Menu -->
     <string name="connect">Connect device</string>
@@ -42,12 +44,15 @@
     
     <!-- Preference dialog -->
     <string name="general_preferences">General</string>
-
-    <string name="text_preferences">Text</string>
-
     <string name="title_maxlaps_preference">Maximum laps</string>
     <string name="summary_maxlaps_preference">Select how many laps needed to finish.</string>
-    <string name="dialog_title_fontsize_preference">Maximum laps</string>
+    <string name="default_maxlaps_preference">1</string>
+    <string name="title_laplength_preference">Length of single lap</string>
+    <string name="summary_laplength_preference">Length in meters is doubled as assumption is detector at one pool end.</string>
+    <string name="default_laplength_preference">10</string>
+    
+    <!--  <string name="text_preferences">Text</string> -->
+    <!--  <string name="dialog_title_fontsize_preference">Maximum laps</string>  -->
 
     <string name="title_document_key_press">Press</string>
     <string name="title_document_key_rest">and Key</string>

@@ -22,7 +22,8 @@ public class SwimmerAdapter extends BaseAdapter {
 	public SwimmerAdapter(Context context, int maxLaps) {
 		super();
 		this.context = context;
-		this.maxLaps = maxLaps;  
+		this.maxLaps = maxLaps;
+		this.start = 0L;
 	}
 	
 	public void updateSwimmers(List<Swimmer> swimmers){
@@ -31,10 +32,20 @@ public class SwimmerAdapter extends BaseAdapter {
 		notifyDataSetChanged();
 	}
 	
+	public void updateSwimmers(List<Swimmer> swimmers, long start){
+		ThreadPreconditions.checkOnMainThread();
+		this.swimmers = swimmers;
+		this.start = start;
+		notifyDataSetChanged();
+	}
+	
 	public void setStart(Long start) {
 		this.start = start;
 	}
 	
+	public void setLaps(int maxLaps){
+		this.maxLaps = maxLaps;
+	}
 	
 	@Override
 	public int getCount() {
@@ -75,11 +86,26 @@ public class SwimmerAdapter extends BaseAdapter {
 		
 		try{
 			Swimmer swimmer = (Swimmer) getItem(position);
-			String lastLap = swimmer.getLaps() > 0 ? Long.toString(swimmer.getLastLap()) : "N/A";
-	
-	        remains = Math.max( this.maxLaps - swimmer.getLaps(), 0);	
+			StringBuilder sb = new StringBuilder(25);
 			
-			holder.txtDesc.setText(Integer.toString(remains) + " to go, last lap: " + lastLap);
+			if(start != 0L){ 
+				
+				sb.append(Math.max (maxLaps - swimmer.getLaps(), 0));
+				sb.append(" laps to go. ");
+				
+				if(swimmer.getLaps() > 0){
+					sb.append("Last lap was "); 
+					sb.append(swimmer.getLastLap());
+					sb.append("ms");
+				}
+			}
+			else{
+				sb.append("Ready");
+			}
+			
+			//Log.d(TAG, "" + start + ' ' + swimmer.getLastLapTime());
+			
+			holder.txtDesc.setText(sb.toString());
 			holder.txtTitle.setText(swimmer.getName());
 		}
 		catch(NumberFormatException e){

@@ -8,18 +8,18 @@
 
         	<ListPreference 
                 android:key="maxlaps"
-                android:defaultValue="1"
+                android:defaultValue="@string/default_maxlaps_preference"
                 android:title="@string/title_maxlaps_preference"
                 android:summary="@string/summary_maxlaps_preference"
                 android:entries="@array/entries_maxlaps_preference"
                 android:entryValues="@array/entryvalues_maxlaps_preference" />
         	<ListPreference 
-                android:key="test"
-                android:defaultValue="1"
-                android:title="Test"
-                android:summary="Testings"
-                android:entries="@array/entries_maxlaps_preference"
-                android:entryValues="@array/entryvalues_maxlaps_preference" />
+                android:key="laplength" 
+                android:defaultValue="@string/default_laplength_preference"
+                android:title="@string/title_laplength_preference"
+                android:summary="@string/summary_laplength_preference"
+                android:entries="@array/entries_lapLength_preference"
+                android:entryValues="@array/entryvalues_lapLength_preference" />
             
     	</PreferenceCategory>
     </PreferenceScreen>

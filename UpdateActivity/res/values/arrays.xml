@@ -25,4 +25,22 @@
         <item>9</item>
         <item>10</item>  
     </string-array>
+    
+    <string-array name="entries_lapLength_preference">
+        <item>10</item>
+        <item>20</item>
+        <item>25</item>
+        <item>30</item>
+        <item>40</item>
+        <item>50</item>
+    </string-array>
+    
+    <string-array name="entryvalues_lapLength_preference">
+        <item>20</item>
+        <item>40</item>
+        <item>50</item>
+        <item>60</item>
+        <item>80</item>
+        <item>100</item>
+    </string-array>
 </resources>

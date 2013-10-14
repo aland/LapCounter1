@@ -37,6 +37,11 @@ public class Swimmer {
 		lastLapTime = time;
 	}
 	
+	public void restart() {
+		lastLapTime = 0L;
+		lapTimes.clear();
+	}
+	
 	public void setLapComplete(long time) {
 		if(lastLapTime <= 0L){
 			Log.e(TAG, "No start time / previous lap time set");

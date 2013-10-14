@@ -90,10 +90,12 @@ public class MainActivity extends Activity implements OnClickListener {
     // Application key names
     public static final String RFIDTAG = "tag";
     public static final String MAXLAPS_KEY = "maxlaps";
+    public static final String LAPLENGTH_KEY = "laplength";
     // Application message types
     public static final int MESSAGE_GETTAG = 6;
     
     private int mMaxLaps = 9;
+    private int mLapLength = 10;
     
     private SharedPreferences mPrefs;
 	
@@ -150,7 +152,7 @@ public class MainActivity extends Activity implements OnClickListener {
         mSerialService = new BluetoothSerialService(this, mHandlerBT);
         mConnectedDeviceNames = new ArrayList<String>();
         
-	    race = new RaceEvent(mMaxLaps);
+	    race = new RaceEvent();
 		listView = (ListView) findViewById(R.id.swimmersView);
         adapter = new SwimmerAdapter(getBaseContext(), mMaxLaps);
         listView.setAdapter(adapter);
@@ -321,6 +323,7 @@ public class MainActivity extends Activity implements OnClickListener {
 	
     private void readPrefs() {
         mMaxLaps = readIntPref(MAXLAPS_KEY, mMaxLaps, 20);
+        mLapLength = readIntPref(LAPLENGTH_KEY, mLapLength, 100);
     }
 
     private int readIntPref(String key, int defaultValue, int maxValue) {
@@ -330,19 +333,18 @@ public class MainActivity extends Activity implements OnClickListener {
                 mPrefs.getString(key, Integer.toString(defaultValue)));
         } catch (NumberFormatException e) {
             val = defaultValue;
+            Log.e(LOG_TAG, "Reading preference failed, using default value of " + defaultValue + " insted of " + key.toString());
         }
-        val = Math.max(0, Math.min(val, maxValue));
+        val = Math.max(1, Math.min(val, maxValue));
         return val;
     }
     
 	public int getConnectionState() {
 		return mSerialService.getState();
 	}
-
-	//don't think I'll need this
-    /*public void send(byte[] out) {
-    	mSerialService.write( out );
-    }*/
+	public int getConnectionState(String addr){
+		return mSerialService.getState(addr);
+	}
     
     // The Handler that gets information back from the BluetoothService
     @SuppressLint("HandlerLeak") // complains this might leak if not static
@@ -589,12 +591,21 @@ public class MainActivity extends Activity implements OnClickListener {
      * Application classes, mostly work with adapter
      */
     private void startRace(){
-		if(race.getSwimmers() >= 1) {
-			race.start();
-			adapter.setStart( race.getStart() );
+		Button startButton = (Button) findViewById(R.id.startButton);
+		if(race.getStart() == null){
+			if(race.start(mMaxLaps)){
+				startButton.setText(R.string.button_stop);
+				adapter.updateSwimmers(race.getAllSwimmers());
+				adapter.setLaps(mMaxLaps);
+				adapter.setStart(race.getStart());	
+			}
 		}
 		else {
-			Log.d("debug", "Not enough swimmers to start");
+			if(race.restart()){
+				startButton.setText(R.string.button_start);
+				adapter.updateSwimmers(race.getAllSwimmers());
+				adapter.setStart(0L);	
+			}
 		}
 	}
 	
