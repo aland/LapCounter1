@@ -24,6 +24,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.os.SystemClock;
 import android.preference.PreferenceManager;
 import android.text.format.DateFormat;
 import android.util.Log;
@@ -36,6 +37,7 @@ import android.view.Window;
 import android.view.View;
 import android.view.Window;
 import android.widget.Button;
+import android.widget.Chronometer;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -592,12 +594,16 @@ public class MainActivity extends Activity implements OnClickListener {
      */
     private void startRace(){
 		Button startButton = (Button) findViewById(R.id.startButton);
+		Chronometer mStopWatch = (Chronometer) findViewById(R.id.chronoTimer);
+
 		if(race.getStart() == null){
 			if(race.start(mMaxLaps)){
 				startButton.setText(R.string.button_stop);
 				adapter.updateSwimmers(race.getAllSwimmers());
 				adapter.setLaps(mMaxLaps);
-				adapter.setStart(race.getStart());	
+				adapter.setStart(race.getStart());
+				mStopWatch.setBase(SystemClock.elapsedRealtime());
+				mStopWatch.start();	
 			}
 		}
 		else {
@@ -605,6 +611,7 @@ public class MainActivity extends Activity implements OnClickListener {
 				startButton.setText(R.string.button_start);
 				adapter.updateSwimmers(race.getAllSwimmers());
 				adapter.setStart(0L);	
+				mStopWatch.stop();
 			}
 		}
 	}

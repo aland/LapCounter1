@@ -56,5 +56,12 @@
 
 	</LinearLayout>
 
+	<Chronometer
+	    android:id="@id/chronoTimer"
+	    android:layout_width="wrap_content"
+	    android:layout_height="wrap_content"
+	    android:layout_alignRight="@id/summaryLayout"
+	    android:layout_alignTop="@id/summaryLayout"
+	    android:layout_marginRight="94dp"/>
 
 </RelativeLayout>
